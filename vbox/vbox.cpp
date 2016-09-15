@@ -32,7 +32,6 @@
 
 #include <KLocalizedString>
 #include <krun.h>
-#include <iostream>
 
 #include "vbox.h"
 
@@ -234,17 +233,18 @@ void VBoxRunner::match(Plasma::RunnerContext &context)
         if( m.name.contains( request, Qt::CaseInsensitive ) )
         {
             Plasma::QueryMatch match( this );
+            match.setData( m.name );
             match.setType( request.compare(m.name, Qt::CaseInsensitive)?
                             Plasma::QueryMatch::PossibleMatch
                             : Plasma::QueryMatch::ExactMatch );
             match.setIcon( m.icon );
             QString name = m.name;
-            QString status = getMachineStatus(m.name);
+            QString status = getMachineStatus( m.name );
             if(status != "") {
                 name += " (" + status + ")";
             }
             match.setText( name );
-            match.setSubtext(i18n("VirtualBox"));
+            match.setSubtext (i18n( "VirtualBox" ) );
             matches << match;
         }
 
@@ -255,10 +255,11 @@ void VBoxRunner::run(const Plasma::RunnerContext &context, const Plasma::QueryMa
 {
     Q_UNUSED(context)
 
+    QString name = match.data().toString();
     if(match.selectedAction() && match.selectedAction()->data() == "headless")
-        KRun::runCommand( QString( "VBoxHeadless -s \"%1\"" ).arg( match.text() ), 0 );
+        KRun::runCommand( QString( "VBoxHeadless -s \"%1\"" ).arg( name ), 0 );
     else
-        KRun::runCommand( QString( "VBoxManage startvm \"%1\"" ).arg( match.text() ), 0 );
+        KRun::runCommand( QString( "VBoxManage startvm \"%1\"" ).arg( name ), 0 );
 }
 
 QString VBoxRunner::getMachineStatus(const QString name)
