@@ -32,6 +32,7 @@
 
 #include <KLocalizedString>
 #include <krun.h>
+#include <iostream>
 
 #include "vbox.h"
 
@@ -237,9 +238,13 @@ void VBoxRunner::match(Plasma::RunnerContext &context)
                             Plasma::QueryMatch::PossibleMatch
                             : Plasma::QueryMatch::ExactMatch );
             match.setIcon( m.icon );
-            match.setText( m.name );
-            match.setSubtext( isRunning(m.name)? i18n( "VirtualBox virtual machine (running)" )
-                                               : i18n( "VirtualBox virtual machine (stopped)" ) );
+            QString name = m.name;
+            QString status = getMachineStatus(m.name);
+            if(status != "") {
+                name += " (" + status + ")";
+            }
+            match.setText( name );
+            match.setSubtext(i18n("VirtualBox"));
             matches << match;
         }
 
@@ -256,21 +261,28 @@ void VBoxRunner::run(const Plasma::RunnerContext &context, const Plasma::QueryMa
         KRun::runCommand( QString( "VBoxManage startvm \"%1\"" ).arg( match.text() ), 0 );
 }
 
-bool VBoxRunner::isRunning(const QString name)
+QString VBoxRunner::getMachineStatus(const QString name)
 {
     QProcess vbm;
     vbm.start( "VBoxManage", QStringList() << "showvminfo" << "--machinereadable" << name );
 
-    if(!vbm.waitForFinished(2000)) return false;
+    if(!vbm.waitForFinished(2000)) return "";
 
     QByteArray info(vbm.readAllStandardOutput());
     foreach(QByteArray line, info.split('\n'))
     {
         QList<QByteArray> data(line.split('"'));
-        if(data[0] == "VMState=")
-            return data[1] != "poweroff";
+        if(data[0] == "VMState=") {
+            QString status = data[1];
+            if(status == "poweroff") {
+                status = "Powered Off";
+            } else {
+                status[0] = status[0].toUpper();
+            }
+            return status;
+        }
     }
-    return false;
+    return "";
 }
 
 QList<QAction*> VBoxRunner::actionsForMatch(const Plasma::QueryMatch &match)
